@@ -8,6 +8,7 @@ if __name__ == '__main__':
         [1, 4, 2, -1],
         [0, -1, 0, -1]
     ]
+    # (raw, column)
     robot_start_location = (0, 0)
     lamp_h = 6
     lamp_location = (2, 2)
