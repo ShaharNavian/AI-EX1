@@ -22,7 +22,7 @@ def get_best(open_set):
 
 
 def add_to_closed(vn, closed_set):
-    closed_set.add(vn.state.get_state_str())
+    closed_set.add(vn)
 
 # returns False if curr_neighbor state not in open_set or has a lower g from the node in open_set
 #remove the node with the higher g from open_set (if exists)
@@ -35,8 +35,10 @@ def duplicate_in_open(vn, open_set):
 #returns False if curr_neighbor state not in closed_set or has a lower g from the node in closed_set
 #remove the node with the higher g from closed_set (if exists)
 def duplicate_in_closed(vn, closed_set):
-    return vn.state.get_state_str() in closed_set
-#
+    for node in closed_set:
+        if node.state == vn.state and node.g <= vn.g:
+            return True
+    return False#
 # def duplicate_in_open(vn, open_set):
 #     for _, node in open_set:
 #         if node.state == vn.state and node.g <= vn.g:
@@ -63,23 +65,27 @@ def search(start_state, heuristic):
     closed_set = create_closed_set()
     start_node = search_node(start_state, 0, heuristic(start_state))
     add_to_open(start_node, open_set)
-    print("start_node", start_node.state.get_state_str())
+    # print("start_node", start_node.state.get_state_str())
+    # print("map:", start_node.state.map)
     while open_not_empty(open_set):
         current = get_best(open_set)
-        print(f"Expanding state: {current.state.get_state_str()} with f={current.f}")
+        print(f"\nExpanding state: {current.state.get_state_str()} with f={current.f}")
+        print("map:", current.state.map,"\n")
         if grid_robot_state.is_goal_state(current.state):
-            print("goal reached")
+            # print("goal reached")
+            # print("curr:", current.state.get_state_str())
             path = []
             while current:
                 path.append(current)
                 current = current.prev
             path.reverse()
             return path
-        print("current neighbors", current.get_neighbors())
+        neighbors = current.get_neighbors()
+        # print("current neighbors", current.get_neighbors())
         add_to_closed(current, closed_set)
-        print("closed_set", closed_set)
-        for neighbor, edge_cost in current.get_neighbors():
-            print("neighbor", neighbor.get_state_str())
+        # print("closed_set", closed_set)
+        for neighbor, edge_cost in neighbors:
+            # print("neighbor", neighbor.get_state_str())
             curr_neighbor = search_node(neighbor, current.g + edge_cost, heuristic(neighbor), current)
             if not duplicate_in_open(curr_neighbor, open_set) and not duplicate_in_closed(curr_neighbor, closed_set):
                 add_to_open(curr_neighbor, open_set)

@@ -6,7 +6,9 @@ def base_heuristic(_grid_robot_state):
             abs(_grid_robot_state.location[1] - _grid_robot_state.lamp_location[1]))
 
 def advanced_heuristic(_grid_robot_state):
-    # idea: base_heuristic + height difference between current state and lamp
+    # idea: Manhattan is goated idgaf about your opinion
     manhattan = base_heuristic(_grid_robot_state)
-    height_difference = max(0, _grid_robot_state.lamp_height - _grid_robot_state.staircase_height)
-    return manhattan + height_difference * 2  # Penalize insufficient stairs more
+    height_difference = max(0, _grid_robot_state.lamp_height -
+                            _grid_robot_state.map[_grid_robot_state.lamp_location[0]][_grid_robot_state.lamp_location[1]]
+                            + _grid_robot_state.staircase_height)
+    return pow(manhattan,2) + height_difference * 0.5 + 429  # Nuh uh, my heuristic, my RULES!!!
