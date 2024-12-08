@@ -108,13 +108,10 @@ class grid_robot_state:
             self.map[x][y] += self.staircase_height
             self.staircase_height = 0  # Reset staircase height
 
+
     def combine_stairs(self):
         x, y = self.location
         if self.staircase_height > 0 and self.map[x][y] > 0:
-            combined_height = self.staircase_height + self.map[x][y]
-
-            # Only combine if the combined height does not exceed lamp height
-            if combined_height <= self.lamp_height:
-                self.staircase_height = combined_height
-                self.map[x][y] = 0  # Remove stairs from the map
-
+            new_height = self.staircase_height + self.map[x][y]
+            self.staircase_height = new_height
+            self.map[x][y] = 0
