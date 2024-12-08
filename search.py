@@ -74,26 +74,3 @@ def search(start_state, heuristic):
     return None
 
 
-def search2(start_state, heuristic):
-    open_set = create_open_set()
-    closed_set = create_closed_set()
-    start_node = search_node(start_state, 0, heuristic(start_state))
-    add_to_open(start_node, open_set)
-    counter = 0
-    while open_not_empty(open_set):
-        print(counter)
-        counter += 1
-        current = get_best(open_set)
-        if grid_robot_state.is_goal_state(current.state):
-            path = []
-            while current:
-                path.append(current)
-                current = current.prev
-            path.reverse()
-            return path
-        add_to_closed(current, closed_set)
-        for neighbor, edge_cost in current.get_neighbors():
-            curr_neighbor = search_node(neighbor, current.g + edge_cost, heuristic(neighbor), current)
-            if not duplicate_in_open(curr_neighbor, open_set) and not duplicate_in_closed(curr_neighbor, closed_set):
-                add_to_open(curr_neighbor, open_set)
-    return None

@@ -1,11 +1,9 @@
 from grid_robot_state import grid_robot_state
 
-
 def base_heuristic(_grid_robot_state):
     # Calculate Manhattan distance between the robot and the lamp
     return (abs(_grid_robot_state.location[0] - _grid_robot_state.lamp_location[0]) +
             abs(_grid_robot_state.location[1] - _grid_robot_state.lamp_location[1]))
-
 
 def advanced_heuristic(_grid_robot_state):
     # Unpack necessary info
@@ -23,7 +21,6 @@ def advanced_heuristic(_grid_robot_state):
     if needed_stairs <= 0:
         # No extra stairs are needed
         return dist_to_lamp
-
     else:
         # Stairs are needed
         if stairs_in_hand >= needed_stairs:
