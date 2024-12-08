@@ -5,35 +5,15 @@ from numba.cuda.simulator.kernelapi import andlock
 class grid_robot_state:
     # you can add global params
 
-    def __init__(self, robot_location, map=None, lamp_height=-1, lamp_location=(-1, -1)):
+    def __init__(self, robot_location, map=None, lamp_height=-1, lamp_location=(-1, -1),staircase_height=0):
         # you can use the init function for several purposes
         self.location = robot_location
         self.map = map
         self.lamp_height = lamp_height
         self.lamp_location = lamp_location
-        self.staircase_height = 0
+        self.staircase_height = staircase_height
 
-    # @staticmethod
-    # def is_goal_state(_grid_robot_state):
-    #     return (_grid_robot_state.location == _grid_robot_state.lamp_location and
-    #             _grid_robot_state.lamp_height == grid_robot_state.get_map()[_grid_robot_state.location[0]][_grid_robot_state.location[1]])
-    #
-    # def get_neighbors(self):
-    #     neighbors = []
-    #     # upper neighbor
-    #     if self.location[0] >= 1:
-    #         neighbors.append((self.location[0] - 1, self.location[1]))
-    #     # lower neighbor
-    #     if self.location[0] <= len(self.map) - 2:
-    #         neighbors.append((self.location[0] + 1, self.location[1]))
-    #     # left neighbor
-    #     if self.location[1] >= 1:
-    #         neighbors.append((self.location[0], self.location[1] - 1))
-    #     # right neighbor
-    #     if self.location[1] <= len(self.map[0]) - 2:
-    #         neighbors.append((self.location[0], self.location[1] + 1))
-    #
-    #     return [((x, y), 1) for x, y in neighbors if self.map[x][y] != -1]
+
 
     def get_neighbors(self):
         neighbors = []
@@ -45,37 +25,31 @@ class grid_robot_state:
             nx, ny = x + dx, y + dy
             if 0 <= nx < len(self.map) and 0 <= ny < len(self.map[0]) and self.map[nx][ny] != -1:
                 cost = 1 + self.staircase_height  # Include current staircase height in cost
-                print(f"Movement to ({nx}, {ny}) with staircase height {self.staircase_height} costs {cost}")
                 new_state = grid_robot_state((nx, ny), [row[:] for row in self.map], self.lamp_height,
-                                             self.lamp_location)
-                new_state.staircase_height = self.staircase_height
+                                             self.lamp_location,self.staircase_height)
                 neighbors.append((new_state, cost))
 
         # Pick up stairs
         if self.map[x][y] > 0 and self.staircase_height == 0:  # Can pick up stairs only if not already holding any
             new_state = grid_robot_state(self.location, [row[:] for row in self.map], self.lamp_height,
-                                         self.lamp_location)
+                                         self.lamp_location,self.staircase_height)
             new_state.pick_up_stairs()
-            print(f"Picked up stairs at ({x}, {y}), new staircase height: {new_state.staircase_height}")
             neighbors.append((new_state, 1))  # Picking up stairs costs 1
 
         # Place stairs
-        if self.staircase_height > 0:  # Can place stairs only if holding some
+        if self.staircase_height > 0 and self.map[x][y] == 0:  # Can place stairs only if holding some
             new_state = grid_robot_state(self.location, [row[:] for row in self.map], self.lamp_height,
-                                         self.lamp_location)
+                                         self.lamp_location,self.staircase_height)
             new_state.place_stairs()
-            print(f"Placed stairs at ({x}, {y}), map updated.")
             neighbors.append((new_state, 1))  # Placing stairs costs 1
 
         # Combine stairs
         if self.staircase_height > 0 and self.map[x][y] > 0:  # Combine stairs only if both conditions are met
             new_state = grid_robot_state(self.location, [row[:] for row in self.map], self.lamp_height,
-                                         self.lamp_location)
+                                         self.lamp_location,self.staircase_height)
             combined_height = self.staircase_height + self.map[x][y]
             if combined_height <= self.lamp_height:  # Only combine if height doesn't exceed lamp height
-                new_state.staircase_height = combined_height
-                new_state.map[x][y] = 0
-                print(f"Combined stairs at ({x}, {y}). New staircase height: {new_state.staircase_height}")
+                new_state.combine_stairs()
                 neighbors.append((new_state, 1))  # Combining stairs costs 1
 
         return neighbors
@@ -85,7 +59,7 @@ class grid_robot_state:
         lamp_x, lamp_y = _grid_robot_state.lamp_location
         return (
                 _grid_robot_state.location == _grid_robot_state.lamp_location and
-                _grid_robot_state.map[lamp_x][lamp_y] >= _grid_robot_state.lamp_height
+                _grid_robot_state.map[lamp_x][lamp_y] == _grid_robot_state.lamp_height
         )
         # you can change the body of the function if you want
         # def __hash__(self):
@@ -103,8 +77,13 @@ class grid_robot_state:
     def get_map(self):
         return self.map
 
+    @staticmethod
+    def get_stairs_locations(self):
+        return [(x, y) for x in range(len(self.map)) for y in range(len(self.map[0])) if self.map[x][y] > 0]
+
+
     def get_state_str(self):
-        return self.location
+        return self.location, "staircase height:", self.staircase_height
 
     def __str__(self):
         return f"{self.get_state_str()}"
@@ -119,22 +98,18 @@ class grid_robot_state:
         if self.map[x][y] > 0 and self.staircase_height == 0:
             self.staircase_height = self.map[x][y]
             self.map[x][y] = 0  # Remove stairs from the map
-            print(f"Picked up stairs at ({x}, {y}). New staircase height: {self.staircase_height}")
+
 
     def place_stairs(self):
         x, y = self.location
-        if self.staircase_height > 0:
+        if self.staircase_height > 0 and self.map[x][y] == 0:
             self.map[x][y] += self.staircase_height
-            print(f"Placed stairs at ({x}, {y}). Total height at location: {self.map[x][y]}")
             self.staircase_height = 0  # Reset staircase height
+
 
     def combine_stairs(self):
         x, y = self.location
         if self.staircase_height > 0 and self.map[x][y] > 0:
             new_height = self.staircase_height + self.map[x][y]
-            if new_height <= self.lamp_height:
-                self.staircase_height = new_height
-                self.map[x][y] = 0
-                print(f"Combined stairs at ({x}, {y}). New staircase height: {self.staircase_height}")
-
-
+            self.staircase_height = new_height
+            self.map[x][y] = 0
