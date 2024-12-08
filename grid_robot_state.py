@@ -5,7 +5,7 @@ from numba.cuda.simulator.kernelapi import andlock
 class grid_robot_state:
     # you can add global params
 
-    def __init__(self, robot_location, map=None, lamp_height=-1, lamp_location=(-1, -1),staircase_height=0):
+    def __init__(self, robot_location, map=None, lamp_height=-1, lamp_location=(-1, -1), staircase_height=0):
         # you can use the init function for several purposes
         self.location = robot_location
         self.map = map
@@ -25,7 +25,7 @@ class grid_robot_state:
                 # No deep copy; share reference to map
                 new_state = grid_robot_state((nx, ny), self.map, self.lamp_height,
                                              self.lamp_location, self.staircase_height)
-                neighbors.append((new_state, 1))
+                neighbors.append((new_state, 1+self.staircase_height))  # Movement costs 1 + staircase height
 
         # Pick up stairs
         if self.map[x][y] > 0 and self.staircase_height == 0:
@@ -42,13 +42,12 @@ class grid_robot_state:
             neighbors.append((new_state, 1))
 
         # Combine stairs
-        if self.staircase_height > 0 and self.map[x][y] > 0:  # Combine stairs only if both conditions are met
+        if self.staircase_height > 0 and self.map[x][y] > 0 and self.staircase_height + self.map[x][
+            y] <= self.lamp_height:  # Combine stairs only if both conditions are met
             new_state = grid_robot_state(self.location, [row[:] for row in self.map], self.lamp_height,
-                                         self.lamp_location,self.staircase_height)
-            combined_height = self.staircase_height + self.map[x][y]
-            if combined_height <= self.lamp_height:  # Only combine if height doesn't exceed lamp height
-                new_state.combine_stairs()
-                neighbors.append((new_state, 1))  # Combining stairs costs 1
+                                         self.lamp_location, self.staircase_height)
+            new_state.combine_stairs()
+            neighbors.append((new_state, 1))  # Combining stairs costs 1
 
         return neighbors
 
@@ -83,7 +82,6 @@ class grid_robot_state:
     def get_stairs_locations(self):
         return [(x, y) for x in range(len(self.map)) for y in range(len(self.map[0])) if self.map[x][y] > 0]
 
-
     def get_state_str(self):
         return self.location, "staircase height:", self.staircase_height
 
@@ -101,13 +99,11 @@ class grid_robot_state:
             self.staircase_height = self.map[x][y]
             self.map[x][y] = 0  # Remove stairs from the map
 
-
     def place_stairs(self):
         x, y = self.location
         if self.staircase_height > 0 and self.map[x][y] == 0:
             self.map[x][y] += self.staircase_height
             self.staircase_height = 0  # Reset staircase height
-
 
     def combine_stairs(self):
         x, y = self.location
