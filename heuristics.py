@@ -23,6 +23,7 @@ def advanced_heuristic(_grid_robot_state):
     if needed_stairs <= 0:
         # No extra stairs are needed
         return dist_to_lamp
+
     else:
         # Stairs are needed
         if stairs_in_hand >= needed_stairs:
